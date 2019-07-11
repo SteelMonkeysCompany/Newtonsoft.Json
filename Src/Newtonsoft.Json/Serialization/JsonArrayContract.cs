@@ -31,12 +31,6 @@ using System.Globalization;
 using System.Reflection;
 using Newtonsoft.Json.Utilities;
 using System.Collections;
-#if !HAVE_LINQ
-using Newtonsoft.Json.Utilities.LinqBridge;
-#else
-using System.Linq;
-
-#endif
 
 namespace Newtonsoft.Json.Serialization
 {
@@ -57,9 +51,6 @@ namespace Newtonsoft.Json.Serialization
         /// <value><c>true</c> if the collection type is a multidimensional array; otherwise, <c>false</c>.</value>
         public bool IsMultidimensionalArray { get; }
 
-        private readonly Type _genericCollectionDefinitionType;
-
-        private Type _genericWrapperType;
         private ObjectConstructor<object> _genericWrapperCreator;
         private Func<object> _genericTemporaryCollectionCreator;
 
@@ -125,16 +116,15 @@ namespace Newtonsoft.Json.Serialization
             {
                 CollectionItemType = ReflectionUtils.GetCollectionItemType(UnderlyingType);
                 IsReadOnlyOrFixedSize = true;
-                _genericCollectionDefinitionType = typeof(List<>).MakeGenericType(CollectionItemType);
 
                 canDeserialize = true;
                 IsMultidimensionalArray = (IsArray && UnderlyingType.GetArrayRank() > 1);
             }
             else if (typeof(IList).IsAssignableFrom(NonNullableUnderlyingType))
             {
-                if (ReflectionUtils.ImplementsGenericDefinition(NonNullableUnderlyingType, typeof(ICollection<>), out _genericCollectionDefinitionType))
+                if (ReflectionUtils.ImplementsGenericDefinition(NonNullableUnderlyingType, typeof(ICollection<>), out tempCollectionType))
                 {
-                    CollectionItemType = _genericCollectionDefinitionType.GetGenericArguments()[0];
+                    CollectionItemType = tempCollectionType.GetGenericArguments()[0];
                 }
                 else
                 {
@@ -154,9 +144,9 @@ namespace Newtonsoft.Json.Serialization
                 IsReadOnlyOrFixedSize = ReflectionUtils.InheritsGenericDefinition(NonNullableUnderlyingType, typeof(ReadOnlyCollection<>));
                 canDeserialize = true;
             }
-            else if (ReflectionUtils.ImplementsGenericDefinition(NonNullableUnderlyingType, typeof(ICollection<>), out _genericCollectionDefinitionType))
+            else if (ReflectionUtils.ImplementsGenericDefinition(NonNullableUnderlyingType, typeof(ICollection<>), out tempCollectionType))
             {
-                CollectionItemType = _genericCollectionDefinitionType.GetGenericArguments()[0];
+                CollectionItemType = tempCollectionType.GetGenericArguments()[0];
 
                 if (ReflectionUtils.IsGenericDefinition(NonNullableUnderlyingType, typeof(ICollection<>))
                     || ReflectionUtils.IsGenericDefinition(NonNullableUnderlyingType, typeof(IList<>)))
@@ -186,7 +176,6 @@ namespace Newtonsoft.Json.Serialization
                     CreatedType = typeof(ReadOnlyCollection<>).MakeGenericType(CollectionItemType);
                 }
 
-                _genericCollectionDefinitionType = typeof(List<>).MakeGenericType(CollectionItemType);
                 _parameterizedConstructor = CollectionUtils.ResolveEnumerableCollectionConstructor(CreatedType, CollectionItemType);
 
 #if HAVE_FSHARP_TYPES
@@ -214,16 +203,12 @@ namespace Newtonsoft.Json.Serialization
 
                 if (NonNullableUnderlyingType.IsGenericType() && NonNullableUnderlyingType.GetGenericTypeDefinition() == typeof(IEnumerable<>))
                 {
-                    _genericCollectionDefinitionType = tempCollectionType;
-
                     IsReadOnlyOrFixedSize = false;
                     ShouldCreateWrapper = false;
                     canDeserialize = true;
                 }
                 else
                 {
-                    _genericCollectionDefinitionType = typeof(List<>).MakeGenericType(CollectionItemType);
-
                     IsReadOnlyOrFixedSize = true;
                     ShouldCreateWrapper = true;
                     canDeserialize = HasParameterizedCreatorInternal;
@@ -266,25 +251,7 @@ namespace Newtonsoft.Json.Serialization
 
         internal IWrappedCollection CreateWrapper(object list)
         {
-            if (_genericWrapperCreator == null)
-            {
-                _genericWrapperType = typeof(CollectionWrapper<>).MakeGenericType(CollectionItemType);
-
-                Type constructorArgument;
-
-                if (ReflectionUtils.InheritsGenericDefinition(_genericCollectionDefinitionType, typeof(List<>))
-                    || _genericCollectionDefinitionType.GetGenericTypeDefinition() == typeof(IEnumerable<>))
-                {
-                    constructorArgument = typeof(ICollection<>).MakeGenericType(CollectionItemType);
-                }
-                else
-                {
-                    constructorArgument = _genericCollectionDefinitionType;
-                }
-
-                ConstructorInfo genericWrapperConstructor = _genericWrapperType.GetConstructor(new[] { constructorArgument });
-                _genericWrapperCreator = JsonTypeReflector.ReflectionDelegateFactory.CreateParameterizedConstructor(genericWrapperConstructor);
-            }
+            _genericWrapperCreator = _genericWrapperCreator ?? JsonTypeReflector.ReflectionDelegateFactory.CreateCollectionWrapperConstructor(CollectionItemType);
 
             return (IWrappedCollection)_genericWrapperCreator(list);
         }
@@ -294,12 +261,11 @@ namespace Newtonsoft.Json.Serialization
             if (_genericTemporaryCollectionCreator == null)
             {
                 // multidimensional array will also have array instances in it
-                Type collectionItemType = (IsMultidimensionalArray || CollectionItemType == null)
+                Type collectionItemType = IsMultidimensionalArray || CollectionItemType == null
                     ? typeof(object)
                     : CollectionItemType;
 
-                Type temporaryListType = typeof(List<>).MakeGenericType(collectionItemType);
-                _genericTemporaryCollectionCreator = JsonTypeReflector.ReflectionDelegateFactory.CreateDefaultConstructor<object>(temporaryListType);
+                _genericTemporaryCollectionCreator = JsonTypeReflector.ReflectionDelegateFactory.CreateTemporaryCollectionConstructor(collectionItemType);
             }
 
             return (IList)_genericTemporaryCollectionCreator();

@@ -24,12 +24,16 @@
 #endregion
 
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Reflection;
 using Newtonsoft.Json.Serialization;
-
 #if !HAVE_LINQ
 using Newtonsoft.Json.Utilities.LinqBridge;
+#else
+using System.Linq;
+
 #endif
 
 namespace Newtonsoft.Json.Utilities
@@ -79,5 +83,59 @@ namespace Newtonsoft.Json.Utilities
         public abstract Func<T, object> CreateGet<T>(FieldInfo fieldInfo);
         public abstract Action<T, object> CreateSet<T>(FieldInfo fieldInfo);
         public abstract Action<T, object> CreateSet<T>(PropertyInfo propertyInfo);
+
+        /// <remarks>
+        ///     Returned constructor returns <see cref="IList" />.
+        /// </remarks>
+        public virtual Func<object> CreateTemporaryCollectionConstructor(Type collectionItemType)
+        {
+            Type temporaryListType = typeof(List<>).MakeGenericType(collectionItemType);
+            return JsonTypeReflector.ReflectionDelegateFactory.CreateDefaultConstructor<object>(temporaryListType);
+        }
+
+        /// <remarks>
+        ///     Returned constructor takes <see cref="IList" /> or <see cref="ICollection{T}" />
+        ///     and returns <see cref="IWrappedCollection" />.
+        /// </remarks>
+        public virtual ObjectConstructor<object> CreateCollectionWrapperConstructor(Type collectionItemType)
+        {
+            Type genericWrapperType = typeof(CollectionWrapper<>).MakeGenericType(collectionItemType);
+            Type constructorArgument = typeof(ICollection<>).MakeGenericType(collectionItemType);
+
+            ConstructorInfo genericWrapperConstructor = genericWrapperType.GetConstructor(new[] { constructorArgument });
+            return JsonTypeReflector.ReflectionDelegateFactory.CreateParameterizedConstructor(genericWrapperConstructor);
+        }
+
+        /// <remarks>
+        ///     Returned constructor returns <see cref="IDictionary" />.
+        /// </remarks>
+        public virtual Func<object> CreateTemporaryDictionary(Type dictionaryKeyType = null, Type dictionaryValueType = null)
+        {
+            Type temporaryDictionaryType = typeof(Dictionary<,>).MakeGenericType(dictionaryKeyType ?? typeof(object), dictionaryValueType ?? typeof(object));
+
+            return JsonTypeReflector.ReflectionDelegateFactory.CreateDefaultConstructor<object>(temporaryDictionaryType);
+        }
+
+        /// <remarks>
+        ///     Returned constructor takes collection of type <paramref name="genericCollectionDefinitionType" />
+        ///     and returns <see cref="IWrappedDictionary" />.
+        /// </remarks>
+        public virtual ObjectConstructor<object> CreateDictionaryWrapperConstructor(Type dictionaryKeyType, Type dictionaryValueType, Type genericCollectionDefinitionType)
+        {
+            var genericWrapperType = typeof(DictionaryWrapper<,>).MakeGenericType(dictionaryKeyType, dictionaryValueType);
+
+            ConstructorInfo genericWrapperConstructor = genericWrapperType.GetConstructor(new[] { genericCollectionDefinitionType });
+            return JsonTypeReflector.ReflectionDelegateFactory.CreateParameterizedConstructor(genericWrapperConstructor);
+        }
+
+        /// <remarks>
+        ///     Returned constructor returns IEnumerable{KeyValuePair{object, object}}.
+        /// </remarks>
+        public virtual ObjectConstructor<object> CreateEnumerableWrapperConstructor(Type keyType, Type valueType)
+        {
+            Type enumerableWrapper = typeof(EnumerableDictionaryWrapper<,>).MakeGenericType(keyType, valueType);
+            ConstructorInfo constructors = enumerableWrapper.GetConstructors().First();
+            return JsonTypeReflector.ReflectionDelegateFactory.CreateParameterizedConstructor(constructors);
+        }
     }
 }
