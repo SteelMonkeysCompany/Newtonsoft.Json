@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using Newtonsoft.Json.Serialization;
 
@@ -17,7 +18,9 @@ namespace Newtonsoft.Json.Utilities
         /// <inheritdoc />
         public override ObjectConstructor<object> CreateCollectionWrapperConstructor(Type collectionItemType)
         {
-            throw new NotImplementedException();
+            return args => new AotCollectionWrapper(
+                collection: (IEnumerable)args[0],
+                reflector: GenericCollectionReflector.OfCollectionWithItemOfType(collectionItemType));
         }
 
         /// <inheritdoc />
