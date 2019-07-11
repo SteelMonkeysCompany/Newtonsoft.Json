@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Newtonsoft.Json.Serialization;
 
 namespace Newtonsoft.Json.Utilities
@@ -10,7 +11,7 @@ namespace Newtonsoft.Json.Utilities
         /// <inheritdoc />
         public override Func<object> CreateTemporaryCollectionConstructor(Type collectionItemType)
         {
-            throw new NotImplementedException();
+            return () => new List<object>();
         }
 
         /// <inheritdoc />
