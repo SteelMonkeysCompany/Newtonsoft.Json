@@ -117,16 +117,32 @@ namespace Newtonsoft.Json.Utilities
         }
 
         /// <remarks>
-        ///     Returned constructor takes collection of type <paramref name="genericCollectionDefinitionType" />
+        ///     Returned constructor takes collection of type <see name="IDictionary{TKey, TValue}" />
         ///     and returns <see cref="IWrappedDictionary" />.
         /// </remarks>
-        public virtual ObjectConstructor<object> CreateDictionaryWrapperConstructor(Type dictionaryKeyType, Type dictionaryValueType, Type genericCollectionDefinitionType)
+        public virtual ObjectConstructor<object> CreateDictionaryWrapperConstructor(Type dictionaryKeyType, Type dictionaryValueType)
         {
-            var genericWrapperType = typeof(DictionaryWrapper<,>).MakeGenericType(dictionaryKeyType, dictionaryValueType);
+            Type dictionaryType = typeof(IDictionary<,>).MakeGenericType(dictionaryKeyType, dictionaryValueType);
+            Type genericWrapperType = typeof(DictionaryWrapper<,>).MakeGenericType(dictionaryKeyType, dictionaryValueType);
 
-            ConstructorInfo genericWrapperConstructor = genericWrapperType.GetConstructor(new[] { genericCollectionDefinitionType });
+            ConstructorInfo genericWrapperConstructor = genericWrapperType.GetConstructor(new[] { dictionaryType });
             return JsonTypeReflector.ReflectionDelegateFactory.CreateParameterizedConstructor(genericWrapperConstructor);
         }
+
+#if HAVE_READ_ONLY_COLLECTIONS
+        /// <remarks>
+        ///     Returned constructor takes collection of type <see name="IReadOnlyDictionary{TKey, TValue}" />
+        ///     and returns <see cref="IWrappedDictionary" />.
+        /// </remarks>
+        public virtual ObjectConstructor<object> CreateReadOnlyDictionaryWrapperConstructor(Type dictionaryKeyType, Type dictionaryValueType)
+        {
+            Type dictionaryType = typeof(IReadOnlyDictionary<,>).MakeGenericType(dictionaryKeyType, dictionaryValueType);
+            Type genericWrapperType = typeof(DictionaryWrapper<,>).MakeGenericType(dictionaryKeyType, dictionaryValueType);
+
+            ConstructorInfo genericWrapperConstructor = genericWrapperType.GetConstructor(new[] { dictionaryType });
+            return JsonTypeReflector.ReflectionDelegateFactory.CreateParameterizedConstructor(genericWrapperConstructor);
+        }
+#endif
 
         /// <remarks>
         ///     Returned constructor returns IEnumerable{KeyValuePair{object, object}}.

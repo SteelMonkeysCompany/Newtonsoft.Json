@@ -61,7 +61,9 @@ namespace Newtonsoft.Json.Serialization
 
         internal JsonContract KeyContract { get; set; }
 
-        private readonly Type _genericCollectionDefinitionType;
+#if HAVE_READ_ONLY_COLLECTIONS
+        private readonly bool _genericDictionaryIsReadOnly;
+#endif
 
         private ObjectConstructor<object> _genericWrapperCreator;
 
@@ -117,10 +119,15 @@ namespace Newtonsoft.Json.Serialization
             Type keyType;
             Type valueType;
 
-            if (ReflectionUtils.ImplementsGenericDefinition(underlyingType, typeof(IDictionary<,>), out _genericCollectionDefinitionType))
+            // ReSharper disable once InlineOutVariableDeclaration
+            Type tempDictionaryType;
+            if (ReflectionUtils.ImplementsGenericDefinition(underlyingType, typeof(IDictionary<,>), out tempDictionaryType))
             {
-                keyType = _genericCollectionDefinitionType.GetGenericArguments()[0];
-                valueType = _genericCollectionDefinitionType.GetGenericArguments()[1];
+#if HAVE_READ_ONLY_COLLECTIONS
+                _genericDictionaryIsReadOnly = false;
+#endif
+                keyType = tempDictionaryType.GetGenericArguments()[0];
+                valueType = tempDictionaryType.GetGenericArguments()[1];
 
                 if (ReflectionUtils.IsGenericDefinition(UnderlyingType, typeof(IDictionary<,>)))
                 {
@@ -144,10 +151,11 @@ namespace Newtonsoft.Json.Serialization
 
             }
 #if HAVE_READ_ONLY_COLLECTIONS
-            else if (ReflectionUtils.ImplementsGenericDefinition(underlyingType, typeof(IReadOnlyDictionary<,>), out _genericCollectionDefinitionType))
+            else if (ReflectionUtils.ImplementsGenericDefinition(underlyingType, typeof(IReadOnlyDictionary<,>), out tempDictionaryType))
             {
-                keyType = _genericCollectionDefinitionType.GetGenericArguments()[0];
-                valueType = _genericCollectionDefinitionType.GetGenericArguments()[1];
+                _genericDictionaryIsReadOnly = true;
+                keyType = tempDictionaryType.GetGenericArguments()[0];
+                valueType = tempDictionaryType.GetGenericArguments()[1];
 
                 if (ReflectionUtils.IsGenericDefinition(UnderlyingType, typeof(IReadOnlyDictionary<,>)))
                 {
@@ -218,7 +226,16 @@ namespace Newtonsoft.Json.Serialization
 
         internal IWrappedDictionary CreateWrapper(object dictionary)
         {
-            _genericWrapperCreator = _genericWrapperCreator ?? JsonTypeReflector.ReflectionDelegateFactory.CreateDictionaryWrapperConstructor(DictionaryKeyType, DictionaryValueType, _genericCollectionDefinitionType);
+            _genericWrapperCreator = _genericWrapperCreator ??
+#if HAVE_READ_ONLY_COLLECTIONS
+                (
+                    _genericDictionaryIsReadOnly
+                    ? JsonTypeReflector.ReflectionDelegateFactory.CreateReadOnlyDictionaryWrapperConstructor(DictionaryKeyType, DictionaryValueType)
+                    : JsonTypeReflector.ReflectionDelegateFactory.CreateDictionaryWrapperConstructor(DictionaryKeyType, DictionaryValueType)
+                );
+#else
+                JsonTypeReflector.ReflectionDelegateFactory.CreateDictionaryWrapperConstructor(DictionaryKeyType, DictionaryValueType);
+#endif
 
             return (IWrappedDictionary)_genericWrapperCreator(dictionary);
         }

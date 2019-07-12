@@ -30,10 +30,18 @@ namespace Newtonsoft.Json.Utilities
         }
 
         /// <inheritdoc />
-        public override ObjectConstructor<object> CreateDictionaryWrapperConstructor(Type dictionaryKeyType, Type dictionaryValueType, Type genericCollectionDefinitionType)
+        public override ObjectConstructor<object> CreateDictionaryWrapperConstructor(Type dictionaryKeyType, Type dictionaryValueType)
         {
             throw new NotImplementedException();
         }
+
+#if HAVE_READ_ONLY_COLLECTIONS
+        /// <inheritdoc />
+        public override ObjectConstructor<object> CreateReadOnlyDictionaryWrapperConstructor(Type dictionaryKeyType, Type dictionaryValueType)
+        {
+            throw new NotImplementedException();
+        }
+#endif
 
         /// <inheritdoc />
         public override ObjectConstructor<object> CreateEnumerableWrapperConstructor(Type keyType, Type valueType)
