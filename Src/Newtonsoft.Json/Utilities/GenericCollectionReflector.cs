@@ -42,8 +42,10 @@ namespace Newtonsoft.Json.Utilities
             _copyToMethod = new MethodReflector(collectionType, nameof(ICollection<object>.CopyTo));
         }
 
-        public static GenericCollectionReflector OfCollectionWithItemOfType(Type itemType)
+        public static GenericCollectionReflector OfCollectionWithItemType(Type itemType)
         {
+            ValidationUtils.ArgumentNotNull(itemType, nameof(itemType));
+
             return InstanceStore.Get(itemType);
         }
 

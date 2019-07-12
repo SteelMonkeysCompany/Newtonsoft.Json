@@ -20,7 +20,7 @@ namespace Newtonsoft.Json.Utilities
         {
             return args => new AotCollectionWrapper(
                 collection: (IEnumerable)args[0],
-                reflector: GenericCollectionReflector.OfCollectionWithItemOfType(collectionItemType));
+                reflector: GenericCollectionReflector.OfCollectionWithItemType(collectionItemType));
         }
 
         /// <inheritdoc />

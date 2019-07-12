@@ -6,28 +6,26 @@ namespace Newtonsoft.Json.Utilities
 {
     internal struct PropertyReflector
     {
-        private static readonly object[] _noArgs = { };
-
-        private readonly Type _collectionType;
+        private readonly Type _declaredType;
 
         private readonly string _name;
 
         private PropertyInfo _cache;
 
-        public PropertyReflector(Type collectionType, string name)
+        public PropertyReflector(Type declaredType, string name)
         {
             _name = name;
-            _collectionType = collectionType;
+            _declaredType = declaredType;
             _cache = null;
         }
 
-        public object Get(object collection)
+        private PropertyInfo GetProperty()
         {
             PropertyInfo property = _cache;
-            if (property == null)
+            if (property is null)
             {
-                property = _collectionType.GetProperty(_name);
-                if (property == null)
+                property = _declaredType.GetProperty(_name);
+                if (property is null)
                 {
                     throw new NotImplementedException("Null result is not expected.");
                 }
@@ -35,7 +33,17 @@ namespace Newtonsoft.Json.Utilities
                 Interlocked.CompareExchange(ref _cache, property, null);
             }
 
-            return property.GetValue(collection, _noArgs);
+            return property;
+        }
+
+        public object Get(object target, params object[] args)
+        {
+            return GetProperty().GetValue(target, args);
+        }
+
+        public void Set(object target, object value, params object[] args)
+        {
+            GetProperty().SetValue(target, value, args);
         }
     }
 }

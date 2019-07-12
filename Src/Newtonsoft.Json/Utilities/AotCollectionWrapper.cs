@@ -47,6 +47,9 @@ namespace Newtonsoft.Json.Utilities
 
         public AotCollectionWrapper(IEnumerable collection, GenericCollectionReflector reflector)
         {
+            ValidationUtils.ArgumentNotNull(collection, nameof(collection));
+            ValidationUtils.ArgumentNotNull(reflector, nameof(reflector));
+
             _collection = collection;
             _reflector = reflector;
         }

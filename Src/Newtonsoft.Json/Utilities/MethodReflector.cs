@@ -6,26 +6,26 @@ namespace Newtonsoft.Json.Utilities
 {
     internal struct MethodReflector
     {
-        private readonly Type _collectionType;
+        private readonly Type _declaredType;
 
         private readonly string _name;
 
         private MethodInfo _cache;
 
-        public MethodReflector(Type collectionType, string name)
+        public MethodReflector(Type declaredType, string name)
         {
-            _collectionType = collectionType;
+            _declaredType = declaredType;
             _name = name;
             _cache = null;
         }
 
-        public object Invoke(object collection, params object[] args)
+        public object Invoke(object target, params object[] args)
         {
             MethodInfo method = _cache;
-            if (method == null)
+            if (method is null)
             {
-                method = _collectionType.GetMethod(_name);
-                if (method == null)
+                method = _declaredType.GetMethod(_name);
+                if (method is null)
                 {
                     throw new NotImplementedException("Null result is not expected.");
                 }
@@ -33,7 +33,7 @@ namespace Newtonsoft.Json.Utilities
                 Interlocked.CompareExchange(ref _cache, method, null);
             }
 
-            return method.Invoke(collection, args);
+            return method.Invoke(target, args);
         }
     }
 }
