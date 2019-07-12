@@ -32,7 +32,9 @@ namespace Newtonsoft.Json.Utilities
         /// <inheritdoc />
         public override ObjectConstructor<object> CreateDictionaryWrapperConstructor(Type dictionaryKeyType, Type dictionaryValueType)
         {
-            throw new NotImplementedException();
+			return args => new AotDictionaryWrapper(
+                dictionary: (IEnumerable)args[0],
+                reflector: GenericDictionaryReflector.OfKeyAndValueTypes(dictionaryKeyType, dictionaryValueType)); 
         }
 
 #if HAVE_READ_ONLY_COLLECTIONS
