@@ -26,7 +26,7 @@ namespace Newtonsoft.Json.Utilities
         /// <inheritdoc />
         public override Func<object> CreateTemporaryDictionary(Type dictionaryKeyType = null, Type dictionaryValueType = null)
         {
-            throw new NotImplementedException();
+            return () => new Dictionary<object, object>();
         }
 
         /// <inheritdoc />
