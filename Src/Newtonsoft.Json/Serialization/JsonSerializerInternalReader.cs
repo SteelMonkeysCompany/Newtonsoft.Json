@@ -515,6 +515,11 @@ namespace Newtonsoft.Json.Serialization
 
                     if (existingValue == null)
                     {
+                        if (AotUtils.IsNoJit)
+                        {
+                            throw JsonSerializationException.Create(reader, "Cannot deserialize a dictionary on full-AOT platform without having an existing value. You must create dictionary by yourself (probably on constructor): {0}.".FormatWith(CultureInfo.InvariantCulture, contract.UnderlyingType));
+                        }
+
                         IDictionary dictionary = CreateNewDictionary(reader, dictionaryContract, out bool createdFromNonDefaultCreator);
 
                         if (createdFromNonDefaultCreator)
