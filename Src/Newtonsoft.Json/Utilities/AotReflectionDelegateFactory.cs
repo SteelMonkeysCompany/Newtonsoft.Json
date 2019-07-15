@@ -50,7 +50,9 @@ namespace Newtonsoft.Json.Utilities
         /// <inheritdoc />
         public override ObjectConstructor<object> CreateEnumerableWrapperConstructor(Type keyType, Type valueType)
         {
-            throw new NotImplementedException();
+            return args => new AotEnumerableDictionaryWrapper(
+                enumerableDictionary: (IEnumerable)args[0],
+                keyValuePairReflector: KeyValuePairReflector.OfTypes(keyType, valueType));
         }
     }
 }
