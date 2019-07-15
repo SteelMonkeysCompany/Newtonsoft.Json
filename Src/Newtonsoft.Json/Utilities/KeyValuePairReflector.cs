@@ -9,19 +9,19 @@ namespace Newtonsoft.Json.Utilities
 
         private PropertyReflector _valueProperty;
 
-        private KeyValuePairReflector(Type keyType, Type valueType)
-        {
-            Type keyValuePairType = typeof(KeyValuePair<,>).MakeGenericType(keyType, valueType);
-
-            _keyProperty = new PropertyReflector(keyValuePairType, nameof(KeyValuePair<object, object>.Key));
-            _valueProperty = new PropertyReflector(keyValuePairType, nameof(KeyValuePair<object, object>.Key));
-        }
-
         private static ThreadSafeStore<KeyValueTypesTuple, KeyValuePairReflector> InstanceStore { get; }
 
         static KeyValuePairReflector()
         {
             InstanceStore = new ThreadSafeStore<KeyValueTypesTuple, KeyValuePairReflector>(t => new KeyValuePairReflector(t.KeyType, t.ValueType));
+        }
+
+        private KeyValuePairReflector(Type keyType, Type valueType)
+        {
+            Type keyValuePairType = typeof(KeyValuePair<,>).MakeGenericType(keyType, valueType);
+
+            _keyProperty = new PropertyReflector(keyValuePairType, nameof(KeyValuePair<object, object>.Key));
+            _valueProperty = new PropertyReflector(keyValuePairType, nameof(KeyValuePair<object, object>.Value));
         }
 
         public static KeyValuePairReflector OfTypes(Type keyType, Type valueType)
