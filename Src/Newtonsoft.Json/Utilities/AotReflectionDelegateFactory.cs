@@ -18,9 +18,9 @@ namespace Newtonsoft.Json.Utilities
         /// <inheritdoc />
         public override ObjectConstructor<object> CreateCollectionWrapperConstructor(Type collectionItemType)
         {
-            return args => new AotCollectionWrapper(
-                collection: (IEnumerable)args[0],
-                reflector: GenericCollectionReflector.OfCollectionWithItemType(collectionItemType));
+            var reflector = GenericCollectionReflector.OfCollectionWithItemType(collectionItemType);
+
+            return args => new AotCollectionWrapper(collection: (IEnumerable)args[0], reflector);
         }
 
         /// <inheritdoc />
@@ -32,27 +32,27 @@ namespace Newtonsoft.Json.Utilities
         /// <inheritdoc />
         public override ObjectConstructor<object> CreateDictionaryWrapperConstructor(Type dictionaryKeyType, Type dictionaryValueType)
         {
-            return args => new AotDictionaryWrapper(
-                dictionary: (IEnumerable)args[0],
-                reflector: GenericDictionaryReflector.OfKeyAndValueTypes(dictionaryKeyType, dictionaryValueType));
+            var reflector = GenericDictionaryReflector.OfKeyAndValueTypes(dictionaryKeyType, dictionaryValueType);
+
+            return args => new AotDictionaryWrapper(dictionary: (IEnumerable)args[0], reflector);
         }
 
 #if HAVE_READ_ONLY_COLLECTIONS
         /// <inheritdoc />
         public override ObjectConstructor<object> CreateReadOnlyDictionaryWrapperConstructor(Type dictionaryKeyType, Type dictionaryValueType)
         {
-            return args => new AotReadOnlyDictionaryWrapper(
-                dictionary: (IEnumerable)args[0],
-                reflector: ReadOnlyDictionaryReflector.OfKeyAndValueTypes(dictionaryKeyType, dictionaryValueType));
+            var reflector = ReadOnlyDictionaryReflector.OfKeyAndValueTypes(dictionaryKeyType, dictionaryValueType);
+
+            return args => new AotReadOnlyDictionaryWrapper(dictionary: (IEnumerable)args[0], reflector);
         }
 #endif
 
         /// <inheritdoc />
         public override ObjectConstructor<object> CreateEnumerableWrapperConstructor(Type keyType, Type valueType)
         {
-            return args => new AotEnumerableDictionaryWrapper(
-                enumerableDictionary: (IEnumerable)args[0],
-                keyValuePairReflector: KeyValuePairReflector.OfTypes(keyType, valueType));
+            var keyValuePairReflector = KeyValuePairReflector.OfTypes(keyType, valueType);
+
+            return args => new AotEnumerableDictionaryWrapper(enumerableDictionary: (IEnumerable)args[0], keyValuePairReflector);
         }
     }
 }
