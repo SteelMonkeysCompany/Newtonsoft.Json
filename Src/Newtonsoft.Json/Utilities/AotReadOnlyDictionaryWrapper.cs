@@ -1,14 +1,16 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Threading;
 
 namespace Newtonsoft.Json.Utilities
 {
-    internal sealed class AotDictionaryWrapper : IWrappedDictionary
+#if HAVE_READ_ONLY_COLLECTIONS
+    internal sealed class AotReadOnlyDictionaryWrapper : IWrappedDictionary
     {
         private readonly object _dictionary;
 
-        private readonly GenericDictionaryReflector _reflector;
+        private readonly ReadOnlyDictionaryReflector _reflector;
 
         private object _syncRoot;
 
@@ -16,13 +18,13 @@ namespace Newtonsoft.Json.Utilities
 
         public int Count => _reflector.GetCount(_dictionary);
 
-        public bool IsReadOnly => _reflector.GetIsReadOnly(_dictionary);
+        public bool IsReadOnly => true;
 
-        bool IDictionary.IsFixedSize => false;
+        bool IDictionary.IsFixedSize => true;
 
-        public ICollection Keys => CopyCollection(_reflector.GetKeys(_dictionary));
+        public ICollection Keys => CopySequence(_reflector.GetKeys(_dictionary));
 
-        public ICollection Values => CopyCollection(_reflector.GetValues(_dictionary));
+        public ICollection Values => CopySequence(_reflector.GetValues(_dictionary));
 
         public bool IsSynchronized => false;
 
@@ -39,9 +41,9 @@ namespace Newtonsoft.Json.Utilities
             }
         }
 
-        public object this[object key] { get => _reflector.GetItem(_dictionary, key); set => _reflector.SetItem(_dictionary, key, value); }
+        public object this[object key] { get => _reflector.GetItem(_dictionary, key); set => throw new NotSupportedException(); }
 
-        public AotDictionaryWrapper(IEnumerable dictionary, GenericDictionaryReflector reflector)
+        public AotReadOnlyDictionaryWrapper(IEnumerable dictionary, ReadOnlyDictionaryReflector reflector)
         {
             ValidationUtils.ArgumentNotNull(dictionary, nameof(dictionary));
             ValidationUtils.ArgumentNotNull(reflector, nameof(reflector));
@@ -59,22 +61,27 @@ namespace Newtonsoft.Json.Utilities
 
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
-        public void Clear() => _reflector.Clear(_dictionary);
+        public void Clear() => throw new NotSupportedException();
 
-        public void Add(object key, object value) => _reflector.Add(_dictionary, key, value);
+        public void Add(object key, object value) => throw new NotSupportedException();
 
         public bool Contains(object key) => _reflector.ContainsKey(_dictionary, key);
 
-        public void Remove(object key) => _reflector.Remove(_dictionary, key);
+        public void Remove(object key) => throw new NotSupportedException();
 
-        public void CopyTo(Array array, int index) => _reflector.CopyTo(_dictionary, array, index);
+        public void CopyTo(Array array, int index) => throw new NotSupportedException();
 
-        private static ICollection CopyCollection(ICollection collection)
+        private static ICollection CopySequence(IEnumerable sequence)
         {
-            var copy = new object[collection.Count];
-            collection.CopyTo(copy, 0);
+            var copy = new List<object>();
+            // ReSharper disable once LoopCanBeConvertedToQuery
+            foreach (object item in sequence)
+            {
+                copy.Add(item);
+            }
 
             return copy;
         }
     }
+#endif
 }
