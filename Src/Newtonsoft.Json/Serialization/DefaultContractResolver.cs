@@ -555,9 +555,7 @@ namespace Newtonsoft.Json.Serialization
 
             if (extensionDataAttribute.WriteData)
             {
-                Type enumerableWrapper = typeof(EnumerableDictionaryWrapper<,>).MakeGenericType(keyType, valueType);
-                ConstructorInfo constructors = enumerableWrapper.GetConstructors().First();
-                ObjectConstructor<object> createEnumerableWrapper = JsonTypeReflector.ReflectionDelegateFactory.CreateParameterizedConstructor(constructors);
+                ObjectConstructor<object> createEnumerableWrapper = JsonTypeReflector.ReflectionDelegateFactory.CreateEnumerableWrapperConstructor(keyType, valueType);
 
                 ExtensionDataGetter extensionDataGetter = o =>
                 {
@@ -574,32 +572,6 @@ namespace Newtonsoft.Json.Serialization
             }
 
             contract.ExtensionDataValueType = valueType;
-        }
-
-        // leave as class instead of struct
-        // will be always return as an interface and boxed
-        internal class EnumerableDictionaryWrapper<TEnumeratorKey, TEnumeratorValue> : IEnumerable<KeyValuePair<object, object>>
-        {
-            private readonly IEnumerable<KeyValuePair<TEnumeratorKey, TEnumeratorValue>> _e;
-
-            public EnumerableDictionaryWrapper(IEnumerable<KeyValuePair<TEnumeratorKey, TEnumeratorValue>> e)
-            {
-                ValidationUtils.ArgumentNotNull(e, nameof(e));
-                _e = e;
-            }
-
-            public IEnumerator<KeyValuePair<object, object>> GetEnumerator()
-            {
-                foreach (KeyValuePair<TEnumeratorKey, TEnumeratorValue> item in _e)
-                {
-                    yield return new KeyValuePair<object, object>(item.Key, item.Value);
-                }
-            }
-
-            IEnumerator IEnumerable.GetEnumerator()
-            {
-                return GetEnumerator();
-            }
         }
 
         private ConstructorInfo GetAttributeConstructor(Type objectType)
@@ -1398,24 +1370,24 @@ namespace Newtonsoft.Json.Serialization
         protected virtual IValueProvider CreateMemberValueProvider(MemberInfo member)
         {
             // warning - this method use to cause errors with Intellitrace. Retest in VS Ultimate after changes
-            IValueProvider valueProvider;
+
+            if (AotUtils.IsNoJit)
+            {
+                return new ReflectionValueProvider(member);
+            }
 
 #if !(PORTABLE40 || PORTABLE || DOTNET || NETSTANDARD2_0)
             if (DynamicCodeGeneration)
             {
-                valueProvider = new DynamicValueProvider(member);
+                return new DynamicValueProvider(member);
             }
-            else
-            {
-                valueProvider = new ReflectionValueProvider(member);
-            }
-#elif !(PORTABLE40)
-            valueProvider = new ExpressionValueProvider(member);
-#else
-            valueProvider = new ReflectionValueProvider(member);
-#endif
 
-            return valueProvider;
+            return new ReflectionValueProvider(member);
+#elif !(PORTABLE40)
+            return new ExpressionValueProvider(member);
+#else
+            return new ReflectionValueProvider(member);
+#endif
         }
 
         /// <summary>

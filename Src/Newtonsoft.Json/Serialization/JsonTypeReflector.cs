@@ -515,6 +515,11 @@ namespace Newtonsoft.Json.Serialization
         {
             get
             {
+                if (AotUtils.IsNoJit)
+                {
+                    return AotReflectionDelegateFactory.Instance;
+                }
+
 #if !(PORTABLE40 || PORTABLE || DOTNET || NETSTANDARD2_0)
                 if (DynamicCodeGeneration)
                 {
